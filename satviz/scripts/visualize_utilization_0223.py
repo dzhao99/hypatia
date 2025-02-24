@@ -108,7 +108,7 @@ def generate_link_util_at_time():
     lines = [line.rstrip('\n') for line in open(IN_UTIL_FILE)]
     
     # Open a text file to write the output values
-    with open("link_utilization_isl_10_gw_5.txt", "w") as f:
+    with open("link_utilization_isl_100_gw_5.txt", "w") as f:
         for i in range(len(lines)):
             val = lines[i].split(",")
             src = int(val[0])
