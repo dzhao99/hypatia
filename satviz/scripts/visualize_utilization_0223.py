@@ -85,7 +85,7 @@ bottomFile = "../static_html/bottom.html"
 city_detail_file = "../../paper/satellite_networks_state/input_data/ground_stations_cities_sorted_by_estimated_2025_pop_top_1000.basic.txt"
 
 # Time in ms for which visualization will be generated
-GEN_TIME=3000  #ms
+GEN_TIME=1000  #ms
 
 # Input utilization data file; Generated during simulation
 IN_UTIL_FILE = "../../paper/ns3_experiments/traffic_matrix/runs/run_general_tm_pairing_kuiper_isls_moving/logs_ns3/isl_utilization.csv"
@@ -106,81 +106,86 @@ def generate_link_util_at_time():
     viz_string = ""
     global time_wise_util
     lines = [line.rstrip('\n') for line in open(IN_UTIL_FILE)]
-    for i in range(len(lines)):
-        val = lines[i].split(",")
-        src = int(val[0])
-        dst = int(val[1])
-        start_ms = round(int(val[2]) / 1000000)
-        end_ms = round(int(val[3]) / 1000000)
-        utilization = float(val[4])
-        if utilization > 1.0:
-            SystemError("Util exceeded 1.0")
-        interval = 0  # millisecond
-        while interval < end_ms - start_ms:
-            time_wise_util[src, dst, start_ms + interval, start_ms + interval + UTIL_INTERVAL] = utilization
-            interval += UTIL_INTERVAL
+    
+    # Open a text file to write the output values
+    with open("link_utilization_isl_10_gw_5.txt", "w") as f:
+        for i in range(len(lines)):
+            val = lines[i].split(",")
+            src = int(val[0])
+            dst = int(val[1])
+            start_ms = round(int(val[2]) / 1000000)
+            end_ms = round(int(val[3]) / 1000000)
+            utilization = float(val[4])
+            if utilization > 1.0:
+                SystemError("Util exceeded 1.0")
+            interval = 0  # millisecond
+            while interval < end_ms - start_ms:
+                time_wise_util[src, dst, start_ms + interval, start_ms + interval + UTIL_INTERVAL] = utilization
+                interval += UTIL_INTERVAL
 
-    shifted_epoch = (pd.to_datetime(EPOCH) + pd.to_timedelta(GEN_TIME, unit='ms')).strftime(
-        format='%Y/%m/%d %H:%M:%S.%f')
-    print(shifted_epoch)
+        shifted_epoch = (pd.to_datetime(EPOCH) + pd.to_timedelta(GEN_TIME, unit='ms')).strftime(
+            format='%Y/%m/%d %H:%M:%S.%f')
+        print(shifted_epoch)
 
-    for i in range(len(sat_objs)):
-        sat_objs[i]["sat_obj"].compute(shifted_epoch)
-        viz_string += "var redSphere = viewer.entities.add({name : '', position: Cesium.Cartesian3.fromDegrees(" \
-                      + str(math.degrees(sat_objs[i]["sat_obj"].sublong)) + ", " \
-                      + str(math.degrees(sat_objs[i]["sat_obj"].sublat)) + ", " + str(
-            sat_objs[i]["alt_km"] * 1000) + "), " \
-                      + "ellipsoid : {radii : new Cesium.Cartesian3(20000.0, 20000.0, 20000.0), " \
-                      + "material : Cesium.Color.BLACK.withAlpha(1),}});\n"
+        for i in range(len(sat_objs)):
+            sat_objs[i]["sat_obj"].compute(shifted_epoch)
+            viz_string += "var redSphere = viewer.entities.add({name : '', position: Cesium.Cartesian3.fromDegrees(" \
+                          + str(math.degrees(sat_objs[i]["sat_obj"].sublong)) + ", " \
+                          + str(math.degrees(sat_objs[i]["sat_obj"].sublat)) + ", " + str(
+                sat_objs[i]["alt_km"] * 1000) + "), " \
+                          + "ellipsoid : {radii : new Cesium.Cartesian3(20000.0, 20000.0, 20000.0), " \
+                          + "material : Cesium.Color.BLACK.withAlpha(1),}});\n"
 
-    # find link_wise util
-    grid_links = util.find_grid_links(sat_objs, NUM_ORBS, NUM_SATS_PER_ORB)
-    for key in grid_links:
-        sat1 = grid_links[key]["sat1"]
-        sat2 = grid_links[key]["sat2"]
-        util_1 = time_wise_util[sat1, sat2, GEN_TIME-UTIL_INTERVAL, GEN_TIME]
-        util_2 = time_wise_util[sat2, sat1, GEN_TIME-UTIL_INTERVAL, GEN_TIME]
-        utilization = util_1
-        if util_2 > utilization:
-            utilization = util_2
-        if utilization > 0.0:
-            link_width = 0.1 + 5 * utilization
-            if utilization >= 0.5:
-                red_weight = 255
-                green_weight = 0 + round(255 * (1 - utilization) / 0.5)
+        # find link_wise util
+        grid_links = util.find_grid_links(sat_objs, NUM_ORBS, NUM_SATS_PER_ORB)
+        for key in grid_links:
+            sat1 = grid_links[key]["sat1"]
+            sat2 = grid_links[key]["sat2"]
+            util_1 = time_wise_util[sat1, sat2, GEN_TIME-UTIL_INTERVAL, GEN_TIME]
+            util_2 = time_wise_util[sat2, sat1, GEN_TIME-UTIL_INTERVAL, GEN_TIME]
+            utilization = util_1
+            if util_2 > utilization:
+                utilization = util_2
+            if utilization > 0.0:
+                link_width = 0.1 + 5 * utilization
+                if utilization >= 0.5:
+                    red_weight = 255
+                    green_weight = 0 + round(255 * (1 - utilization) / 0.5)
+                else:
+                    green_weight = 255
+                    red_weight = 255 - round(255 * (0.5 - utilization) / 0.5)
+                hex_col = '%02x%02x%02x' % (red_weight, green_weight, 0)
+                # Write to file instead of printing
+                f.write(f"{sat1},{sat2},{utilization},{hex_col}\n")
+                viz_string += "viewer.entities.add({name : '', polyline: { positions: Cesium.Cartesian3.fromDegreesArrayHeights([" \
+                              + str(math.degrees(sat_objs[sat1]["sat_obj"].sublong)) + "," \
+                              + str(math.degrees(sat_objs[sat1]["sat_obj"].sublat)) + "," \
+                              + str(sat_objs[sat1]["alt_km"] * 1000) + "," \
+                              + str(math.degrees(sat_objs[sat2]["sat_obj"].sublong)) + "," \
+                              + str(math.degrees(sat_objs[sat2]["sat_obj"].sublat)) + "," \
+                              + str(sat_objs[sat2]["alt_km"] * 1000) + "]), " \
+                              + "width: "+str(link_width)+", arcType: Cesium.ArcType.NONE, " \
+                              + "material: new Cesium.PolylineOutlineMaterialProperty({ " \
+                              + "color: Cesium.Color.fromCssColorString('#"+str(hex_col)+"'), outlineWidth: 0, outlineColor: Cesium.Color.BLACK})}});"
+            
             else:
-                green_weight = 255
-                red_weight = 255 - round(255 * (0.5 - utilization) / 0.5)
-            hex_col = '%02x%02x%02x' % (red_weight, green_weight, 0)
-            print(sat1, sat2, utilization, hex_col)
-            viz_string += "viewer.entities.add({name : '', polyline: { positions: Cesium.Cartesian3.fromDegreesArrayHeights([" \
-                          + str(math.degrees(sat_objs[sat1]["sat_obj"].sublong)) + "," \
-                          + str(math.degrees(sat_objs[sat1]["sat_obj"].sublat)) + "," \
-                          + str(sat_objs[sat1]["alt_km"] * 1000) + "," \
-                          + str(math.degrees(sat_objs[sat2]["sat_obj"].sublong)) + "," \
-                          + str(math.degrees(sat_objs[sat2]["sat_obj"].sublat)) + "," \
-                          + str(sat_objs[sat2]["alt_km"] * 1000) + "]), " \
-                          + "width: "+str(link_width)+", arcType: Cesium.ArcType.NONE, " \
-                          + "material: new Cesium.PolylineOutlineMaterialProperty({ " \
-                          + "color: Cesium.Color.fromCssColorString('#"+str(hex_col)+"'), outlineWidth: 0, outlineColor: Cesium.Color.BLACK})}});"
-        
-        else:
-            link_width = 0.1
-            hex_col = '%02x%02x%02x' % (0,0,255)
-            print(sat1, sat2, utilization, hex_col)
-            viz_string += "viewer.entities.add({name : '', polyline: { positions: Cesium.Cartesian3.fromDegreesArrayHeights([" \
-                          + str(math.degrees(sat_objs[sat1]["sat_obj"].sublong)) + "," \
-                          + str(math.degrees(sat_objs[sat1]["sat_obj"].sublat)) + "," \
-                          + str(sat_objs[sat1]["alt_km"] * 1000) + "," \
-                          + str(math.degrees(sat_objs[sat2]["sat_obj"].sublong)) + "," \
-                          + str(math.degrees(sat_objs[sat2]["sat_obj"].sublat)) + "," \
-                          + str(sat_objs[sat2]["alt_km"] * 1000) + "]), " \
-                          + "width: "+str(link_width)+", arcType: Cesium.ArcType.NONE, " \
-                          + "material: new Cesium.PolylineOutlineMaterialProperty({ " \
-                          + "color: Cesium.Color.fromCssColorString('#"+str(hex_col)+"'), outlineWidth: 0, outlineColor: Cesium.Color.BLACK})}});"
-        
-
+                link_width = 0.1
+                hex_col = '%02x%02x%02x' % (0,0,255)
+                # Write to file instead of printing
+                f.write(f"{sat1},{sat2},{utilization},{hex_col}\n")
+                viz_string += "viewer.entities.add({name : '', polyline: { positions: Cesium.Cartesian3.fromDegreesArrayHeights([" \
+                              + str(math.degrees(sat_objs[sat1]["sat_obj"].sublong)) + "," \
+                              + str(math.degrees(sat_objs[sat1]["sat_obj"].sublat)) + "," \
+                              + str(sat_objs[sat1]["alt_km"] * 1000) + "," \
+                              + str(math.degrees(sat_objs[sat2]["sat_obj"].sublong)) + "," \
+                              + str(math.degrees(sat_objs[sat2]["sat_obj"].sublat)) + "," \
+                              + str(sat_objs[sat2]["alt_km"] * 1000) + "]), " \
+                              + "width: "+str(link_width)+", arcType: Cesium.ArcType.NONE, " \
+                              + "material: new Cesium.PolylineOutlineMaterialProperty({ " \
+                              + "color: Cesium.Color.fromCssColorString('#"+str(hex_col)+"'), outlineWidth: 0, outlineColor: Cesium.Color.BLACK})}});"
+    
     return viz_string
+
 
 
 sat_objs = util.generate_sat_obj_list(

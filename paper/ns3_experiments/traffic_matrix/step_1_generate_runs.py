@@ -23,6 +23,7 @@
 import exputil
 import networkload
 import random
+import itertools
 
 local_shell = exputil.LocalShell()
 
@@ -31,8 +32,10 @@ local_shell.remove_force_recursive("runs")
 local_shell.remove_force_recursive("pdf")
 local_shell.remove_force_recursive("data")
 
-for traffic_mode in ["specific", "general"]:
-    for movement in ["static", "moving"]:
+# for traffic_mode in ["specific", "general"]:
+#     for movement in ["static", "moving"]:
+for traffic_mode in ["general"]:
+    for movement in ["moving"]:
 
         # Prepare run directory
         run_dir = "runs/run_" + traffic_mode + "_tm_pairing_kuiper_isls_" + movement
@@ -175,6 +178,8 @@ for traffic_mode in ["specific", "general"]:
                 list(a),
                 seed_from_to
             )
+            a = set(range(1156, 1256))
+            list_from_to = [(i, j) for i, j in itertools.permutations(a, 2)]
 
         else:
             raise ValueError("Unknown traffic mode: " + traffic_mode)

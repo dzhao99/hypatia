@@ -154,13 +154,15 @@ def main():
     local_shell.make_full_dir("pdf")
 
     # Plot all the pair path utilization
-    for traffic_mode in ["specific", "general"]:
-        for movement in ["static", "moving"]:
+    # for traffic_mode in ["specific", "general"]:
+    #     for movement in ["static", "moving"]:
+    for traffic_mode in ["general"]:
+        for movement in ["moving"]:
 
             # Pair path max utilization
             plot_pair_path_max_utilization(
                 "../../satgenpy_analysis/data/"
-                "kuiper_630_isls_plus_grid_ground_stations_top_100_algorithm_free_one_only_over_isls/100ms_for_200s"
+                "kuiper_630_isls_plus_grid_ground_stations_top_100_algorithm_free_one_only_over_isls/100ms_for_5s"
                 "/manual/data",
                 "run_%s_tm_pairing_kuiper_isls_%s" % (traffic_mode, movement),
                 1174, 1229, movement == "static"
