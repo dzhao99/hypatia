@@ -36,7 +36,7 @@ for traffic_mode in ["general"]:
     for movement in ["static", "moving"]:
 
         # Prepare run directory
-        run_dir = "runs/run_" + traffic_mode + "_tm_pairing_kuiper_isls_" + movement
+        run_dir = "runs/run_" + traffic_mode + "_tm_pairing_starlink_isls_" + movement
         local_shell.remove_force_recursive(run_dir)
         local_shell.make_full_dir(run_dir)
 
@@ -180,19 +180,37 @@ for traffic_mode in ["general"]:
             random.seed(123456789)
             random.randint(0, 100000000)  # Legacy reasons
             seed_from_to = random.randint(0, 100000000)
-            a = set(range(1156, 1256))
-            list_from_to = networkload.generate_from_to_reciprocated_random_pairing(
-                list(a),
-                seed_from_to
-            )
-            list_from_to = list_from_to * 10
+            #a = set(range(1156, 1256))
+            a = set(range(1296,1396))
+            # list_from_to = networkload.generate_from_to_reciprocated_random_pairing(
+            #     list(a),
+            #     seed_from_to
+            # )
+            list_from_to = []
+            # for i in range(1156, 1256, 2):
+            #     if i + 1 <= 1256:
+            #         list_from_to.append((i, i + 1))
+            
+            available = []
+            for i in range(5280, 5380):
+                available.append(i)
+
+            random.shuffle(available)
+            count = 0
+            while count < 50:
+                src = available.pop()
+                dst = available.pop()
+                list_from_to.append((src, dst))
+                count += 1
+                
+            list_from_to = list_from_to * 100
 
         else:
             raise ValueError("Unknown traffic mode: " + traffic_mode)
 
         # Write the schedule
         networkload.write_schedule(
-            run_dir + "/schedule_kuiper_630.csv",
+            run_dir + "/schedule_starlink_340.csv",
             len(list_from_to),
             list_from_to,
             [1000000000000] * len(list_from_to),

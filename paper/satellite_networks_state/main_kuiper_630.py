@@ -88,7 +88,7 @@ def main():
         exit(1)
     else:
         main_helper.calculate(
-            "gen_data",
+            "gen_data_uplink_downlink_equal",
             int(args[0]),
             int(args[1]),
             args[2],

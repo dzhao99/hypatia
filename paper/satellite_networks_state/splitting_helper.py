@@ -141,6 +141,8 @@ class splitting_MainHelper:
             gsl_interfaces_per_satellite = len(ground_stations)
         elif dynamic_state_algorithm == "algorithm_free_gs_one_sat_uplink_downlink_only_over_isls_lasthop_splitting":
             gsl_interfaces_per_satellite = 2
+        elif dynamic_state_algorithm == "algorithm_free_gs_one_sat_uplink_downlink_only_over_isls_equal":
+            gsl_interfaces_per_satellite = 2
         else:
             raise ValueError("Unknown dynamic state algorithm: " + dynamic_state_algorithm)
 
